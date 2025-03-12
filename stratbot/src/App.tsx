@@ -114,15 +114,9 @@ function App() {
       <div className={`w-64 bg-white border-r border-gray-200 transition-all ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:static top-0 bottom-0 left-0 z-40`}>
         <div className="flex h-14 items-center border-b px-4">
           <div className="flex items-center gap-2 font-semibold">
-            <img 
-              src="/cracker-barrel-logo.png" 
-              alt="Cracker Barrel Logo" 
-              className="h-6 w-6"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = 'https://via.placeholder.com/24?text=CB';
-              }}
-            />
+            <div className="h-6 w-6 bg-amber-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+              CB
+            </div>
             Strategy Bot
           </div>
         </div>
@@ -229,9 +223,10 @@ function App() {
                     onKeyDown={handleKeyPress}
                   />
                   <Button 
+                    type="button"
                     onClick={handleSendMessage} 
-                    disabled={input.trim() === '' || isLoading}
-                    className="bg-amber-600 hover:bg-amber-700"
+                    disabled={false}
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
                   >
                     <Send className="h-4 w-4" />
                     <span className="sr-only">Send</span>
