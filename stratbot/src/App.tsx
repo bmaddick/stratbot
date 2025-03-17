@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, Menu, ChevronRight } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 import './App.css'
 
 // Import UI components
@@ -63,26 +64,41 @@ function App() {
     setIsLoading(true);
     
     try {
-      // This will be replaced with actual API call to OpenAI
-      const response = await sendMessageToAssistant({
-        messages: [{ role: 'user', content: input }],
-        assistantId: import.meta.env.VITE_OPENAI_ASSISTANT_ID || 'placeholder-assistant-id',
-        threadId: threadId || undefined
-      });
-      
-      // Update thread ID if it's new
-      if (response.threadId && (!threadId || threadId !== response.threadId)) {
-        setThreadId(response.threadId);
-      }
-      
+      // Create a placeholder for the assistant message
+      const assistantMessageId = (Date.now() + 1).toString();
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: response.message.content,
+        id: assistantMessageId,
+        content: '',
         role: 'assistant',
         timestamp: new Date()
       };
       
+      // Add empty assistant message that will be updated with streaming
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Use streaming to update the message content in real-time
+      await sendMessageToAssistant(
+        {
+          messages: [{ role: 'user', content: input }],
+          assistantId: import.meta.env.VITE_OPENAI_ASSISTANT_ID || 'placeholder-assistant-id',
+          threadId: threadId || undefined
+        },
+        (updatedContent) => {
+          // Update the assistant message with the new content
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === assistantMessageId 
+                ? { ...msg, content: updatedContent } 
+                : msg
+            )
+          );
+        }
+      ).then(response => {
+        // Update thread ID if it's new
+        if (response.threadId && (!threadId || threadId !== response.threadId)) {
+          setThreadId(response.threadId);
+        }
+      });
     } catch (error) {
       console.error('Error sending message to assistant:', error);
       
@@ -192,7 +208,13 @@ function App() {
                               : 'bg-gray-100 text-gray-800'
                           }`}
                         >
-                          {message.content}
+                          {message.role === 'user' ? (
+                            message.content
+                          ) : (
+                            <ReactMarkdown>
+                              {message.content || ''}
+                            </ReactMarkdown>
+                          )}
                         </div>
                       </div>
                     ))}
