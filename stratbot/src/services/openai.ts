@@ -171,8 +171,16 @@ export const sendMessageToAssistant = async (
 
     // Start a new run with the specified assistant
     // This initiates the AI processing of the conversation
+    
+    // Use the global assistantId if request.assistantId is not provided or empty
+    const assistantIdToUse = request.assistantId || assistantId;
+    
+    if (!assistantIdToUse) {
+      throw new Error('Missing required parameter: assistant_id. Please check your environment variables and request parameters.');
+    }
+    
     const run = await openai.beta.threads.runs.create(threadId, {
-      assistant_id: request.assistantId,
+      assistant_id: assistantIdToUse,
     });
     
     // Log the request parameters for debugging
