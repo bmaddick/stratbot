@@ -9,5 +9,10 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Ensure environment variables are properly loaded
+  envPrefix: 'VITE_',
+  define: {
+    'process.env': {}
+  }
 })
 
