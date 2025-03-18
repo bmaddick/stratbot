@@ -1,3 +1,16 @@
+/**
+ * Cracker Barrel Strategy Bot - CSS Styles
+ * 
+ * This file contains all the styling for the Strategy Bot application,
+ * including layout, animations, markdown formatting, and error message styling.
+ */
+
+/**
+ * Base Layout Styles
+ * 
+ * These styles define the basic layout and container properties
+ * for the application root element.
+ */
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -5,6 +18,12 @@
   text-align: center;
 }
 
+/**
+ * Logo Styles and Animations
+ * 
+ * These styles control the appearance and hover effects for logos.
+ * Includes transition effects and animations.
+ */
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -18,6 +37,7 @@
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
 
+/* Logo spinning animation */
 @keyframes logo-spin {
   from {
     transform: rotate(0deg);
@@ -27,12 +47,18 @@
   }
 }
 
+/* Respect user preferences for reduced motion */
 @media (prefers-reduced-motion: no-preference) {
   a:nth-of-type(2) .logo {
     animation: logo-spin infinite 20s linear;
   }
 }
 
+/**
+ * UI Component Styles
+ * 
+ * Basic styling for common UI components used throughout the application.
+ */
 .card {
   padding: 2em;
 }
@@ -41,30 +67,45 @@
   color: #888;
 }
 
-/* Add styles for markdown formatting */
+/**
+ * Markdown Text Formatting Styles
+ * 
+ * These styles enhance the readability of AI-generated responses by applying
+ * proper typography and spacing to markdown-formatted content.
+ * 
+ * The .prose class is applied to the container of markdown-rendered content
+ * and provides consistent styling for paragraphs, lists, headings, and code blocks.
+ */
+
+/* Paragraph spacing for better readability */
 .prose p {
   margin-bottom: 1em;
 }
 
+/* Remove bottom margin from last paragraph to avoid extra space */
 .prose p:last-child {
   margin-bottom: 0;
 }
 
+/* List formatting with proper indentation and spacing */
 .prose ul, .prose ol {
   margin-left: 1.5em;
   margin-bottom: 1em;
 }
 
+/* List item spacing for better visual separation */
 .prose li {
   margin-bottom: 0.5em;
 }
 
+/* Heading styles with proper spacing and emphasis */
 .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
   margin-top: 1.5em;
   margin-bottom: 0.5em;
   font-weight: 600;
 }
 
+/* Inline code formatting for technical terms and commands */
 .prose code {
   background-color: rgba(0, 0, 0, 0.05);
   padding: 0.2em 0.4em;
@@ -72,25 +113,38 @@
   font-family: monospace;
 }
 
+/* Code block formatting for multi-line code examples */
 .prose pre {
   background-color: rgba(0, 0, 0, 0.05);
   padding: 1em;
   border-radius: 5px;
-  overflow-x: auto;
+  overflow-x: auto; /* Horizontal scrolling for long code lines */
   margin-bottom: 1em;
 }
 
-/* Add styles for error messages */
+/**
+ * Error Message Styling
+ * 
+ * These styles provide visual cues for error messages displayed to users
+ * when API calls fail or other errors occur in the application.
+ * 
+ * The styling uses a subtle red background with a prominent left border
+ * to clearly indicate error states without being visually overwhelming.
+ */
+
+/* Error message container with distinct visual styling */
 .error-message {
-  background-color: rgba(220, 38, 38, 0.1) !important;
-  border-left: 4px solid #dc2626 !important;
-  color: #dc2626 !important;
+  background-color: rgba(220, 38, 38, 0.1) !important; /* Light red background */
+  border-left: 4px solid #dc2626 !important; /* Red accent border for emphasis */
+  color: #dc2626 !important; /* Red text for clear error indication */
 }
 
+/* Paragraph spacing within error messages */
 .error-message p {
   margin-bottom: 0.5em;
 }
 
+/* Remove bottom margin from last paragraph to avoid extra space */
 .error-message p:last-child {
   margin-bottom: 0;
 }
