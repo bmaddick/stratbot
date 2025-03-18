@@ -6,7 +6,7 @@ declare module 'openai' {
       threads: {
         create(): Promise<{ id: string }>;
         messages: {
-          create(threadId: string, message: { role: string; content: string }): Promise<any>;
+          create(threadId: string, message: { role: string; content: string }): Promise<{ id: string }>;
           list(threadId: string): Promise<{ data: Array<{ 
             content: Array<{ 
               type: string; 
@@ -19,6 +19,17 @@ declare module 'openai' {
           retrieve(threadId: string, runId: string): Promise<{ 
             status: 'queued' | 'in_progress' | 'completed' | 'failed' | 'cancelled' | 'expired' 
           }>;
+          stream(threadId: string, runId: string): Promise<AsyncIterable<{
+            event: string;
+            data?: {
+              delta?: {
+                content?: Array<{
+                  type: string;
+                  text?: { value: string }
+                }>
+              }
+            }
+          }>>;
         };
       };
     };
