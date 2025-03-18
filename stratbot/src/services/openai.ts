@@ -1,9 +1,15 @@
 // OpenAI Assistant API Integration Service
 import OpenAI from 'openai';
 
+// Validate environment variables
+const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+if (!apiKey) {
+  console.error('OpenAI API key is missing. Please add VITE_OPENAI_API_KEY to your .env file.');
+}
+
 // Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY as string,
+  apiKey: apiKey as string,
   dangerouslyAllowBrowser: true // Allow API key usage in browser for demo purposes
 });
 
@@ -32,7 +38,23 @@ export const createThread = async (): Promise<string> => {
     return thread.id;
   } catch (error) {
     console.error('Error creating thread:', error);
-    throw error;
+    
+    // Provide more specific error information
+    let errorMessage = 'Failed to create conversation thread.';
+    
+    if (error instanceof Error) {
+      if (error.message.includes('401')) {
+        errorMessage = 'Authentication error: Please check your OpenAI API key.';
+      } else if (error.message.includes('429')) {
+        errorMessage = 'Rate limit exceeded: Too many requests to the OpenAI API.';
+      } else if (error.message.includes('500')) {
+        errorMessage = 'OpenAI server error: Please try again later.';
+      } else {
+        errorMessage = `Error creating thread: ${error.message}`;
+      }
+    }
+    
+    throw new Error(errorMessage);
   }
 };
 
@@ -63,15 +85,28 @@ export const sendMessageToAssistant = async (
       // Use streaming for real-time updates
       let fullContent = '';
       
-      const stream = await openai.beta.threads.runs.stream(threadId, run.id);
-      
-      for await (const event of stream) {
-        if (event.event === 'thread.message.delta' && event.data?.delta?.content) {
-          const contentDelta = event.data.delta.content[0];
-          if (contentDelta.type === 'text' && contentDelta.text) {
-            fullContent += contentDelta.text.value;
-            onMessageUpdate(fullContent);
+      try {
+        const stream = await openai.beta.threads.runs.stream(threadId, run.id);
+        
+        for await (const event of stream) {
+          if (event.event === 'thread.message.delta' && event.data?.delta?.content) {
+            const contentDelta = event.data.delta.content[0];
+            if (contentDelta.type === 'text' && contentDelta.text) {
+              fullContent += contentDelta.text.value;
+              onMessageUpdate(fullContent);
+            }
+          } else if (event.event === 'error') {
+            // Handle streaming errors
+            const errorMessage = `Streaming error: ${JSON.stringify(event.data)}`;
+            onMessageUpdate(`Error: ${errorMessage}`);
+            throw new Error(errorMessage);
           }
+        }
+      } catch (streamError) {
+        console.error('Error in streaming:', streamError);
+        if (streamError instanceof Error) {
+          onMessageUpdate(`Error: ${streamError.message}`);
+          throw streamError;
         }
       }
       
