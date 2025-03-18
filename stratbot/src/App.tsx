@@ -76,11 +76,17 @@ function App() {
       // Add empty assistant message that will be updated with streaming
       setMessages(prev => [...prev, assistantMessage]);
       
+      // Get Assistant ID from environment variables
+      const assistantId = import.meta.env.VITE_OPENAI_ASSISTANT_ID;
+      if (!assistantId) {
+        throw new Error('Assistant ID is missing. Please add VITE_OPENAI_ASSISTANT_ID to your .env file.');
+      }
+      
       // Use streaming to update the message content in real-time
       await sendMessageToAssistant(
         {
           messages: [{ role: 'user', content: input }],
-          assistantId: import.meta.env.VITE_OPENAI_ASSISTANT_ID || 'placeholder-assistant-id',
+          assistantId: assistantId,
           threadId: threadId || undefined
         },
         (updatedContent) => {
@@ -205,7 +211,9 @@ function App() {
                           className={`max-w-[80%] rounded-lg p-3 ${
                             message.role === 'user'
                               ? 'bg-amber-600 text-white'
-                              : 'bg-gray-100 text-gray-800'
+                              : message.content.startsWith('Error:') || message.content.includes('error')
+                                ? 'error-message'
+                                : 'bg-gray-100 text-gray-800'
                           }`}
                         >
                           {message.role === 'user' ? (
