@@ -18,8 +18,20 @@ import OpenAI from 'openai';
  * Provides a clear error message if the key is missing to help with configuration.
  */
 const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+const assistantId = import.meta.env.VITE_OPENAI_ASSISTANT_ID;
+
+console.log('Environment variables loaded:', { 
+  apiKeyExists: !!apiKey, 
+  assistantIdExists: !!assistantId,
+  assistantIdValue: assistantId // Log the actual value for debugging
+});
+
 if (!apiKey) {
   console.error('OpenAI API key is missing. Please add VITE_OPENAI_API_KEY to your .env file.');
+}
+
+if (!assistantId) {
+  console.error('Assistant ID is missing. Please add VITE_OPENAI_ASSISTANT_ID to your .env file.');
 }
 
 /**
@@ -161,6 +173,12 @@ export const sendMessageToAssistant = async (
     // This initiates the AI processing of the conversation
     const run = await openai.beta.threads.runs.create(threadId, {
       assistant_id: request.assistantId,
+    });
+    
+    // Log the request parameters for debugging
+    console.log('Creating run with parameters:', { 
+      threadId, 
+      assistant_id: request.assistantId 
     });
 
     // Check if streaming callback is provided
