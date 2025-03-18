@@ -216,8 +216,18 @@ export const sendMessageToAssistant = async (
           // Get the latest messages to simulate streaming
           if (runStatus.status === 'in_progress') {
             const messages = await openai.beta.threads.messages.list(threadId);
-            if (messages.data.length > 0) {
-              const latestMessage = messages.data[0];
+            
+            // Debug logging to help with troubleshooting message filtering
+            console.log('Messages retrieved:', { 
+              totalMessages: messages.data.length, 
+              assistantMessages: messages.data.filter((msg: any) => msg.role === 'assistant').length,
+              userMessages: messages.data.filter((msg: any) => msg.role === 'user').length
+            });
+            
+            // Filter for assistant messages only to prevent showing user's question
+            const assistantMessages = messages.data.filter((msg: any) => msg.role === 'assistant');
+            if (assistantMessages.length > 0) {
+              const latestMessage = assistantMessages[0];
               if (latestMessage.content && latestMessage.content.length > 0) {
                 const textContent = latestMessage.content.find((item) => item.type === 'text');
                 if (textContent && 'text' in textContent && textContent.text) {
@@ -232,8 +242,18 @@ export const sendMessageToAssistant = async (
         // Final check for completion
         if (runStatus.status === 'completed') {
           const messages = await openai.beta.threads.messages.list(threadId);
-          if (messages.data.length > 0) {
-            const latestMessage = messages.data[0];
+          
+          // Debug logging to help with troubleshooting message filtering
+          console.log('Final messages retrieved:', { 
+            totalMessages: messages.data.length, 
+            assistantMessages: messages.data.filter((msg: any) => msg.role === 'assistant').length,
+            userMessages: messages.data.filter((msg: any) => msg.role === 'user').length
+          });
+          
+          // Filter for assistant messages only to prevent showing user's question
+          const assistantMessages = messages.data.filter((msg: any) => msg.role === 'assistant');
+          if (assistantMessages.length > 0) {
+            const latestMessage = assistantMessages[0];
             if (latestMessage.content && latestMessage.content.length > 0) {
               const textContent = latestMessage.content.find((item) => item.type === 'text');
               if (textContent && 'text' in textContent && textContent.text) {
@@ -242,7 +262,7 @@ export const sendMessageToAssistant = async (
               }
             }
           }
-        } else if (runStatus.status === 'failed' || runStatus.status === 'cancelled' || runStatus.status === 'expired') {
+        }else if (runStatus.status === 'failed' || runStatus.status === 'cancelled' || runStatus.status === 'expired') {
           throw new Error(`Run ended with status: ${runStatus.status}`);
         }
       } catch (streamError) {
@@ -289,12 +309,23 @@ export const sendMessageToAssistant = async (
 
       // Once completed, retrieve all messages from the thread
       const messages = await openai.beta.threads.messages.list(threadId);
+      
+      // Debug logging to help with troubleshooting message filtering
+      console.log('Fallback mode messages retrieved:', { 
+        totalMessages: messages.data.length, 
+        assistantMessages: messages.data.filter((msg: any) => msg.role === 'assistant').length,
+        userMessages: messages.data.filter((msg: any) => msg.role === 'user').length
+      });
+      
+      // Filter for assistant messages only to prevent showing user's question
+      const assistantMessages = messages.data.filter((msg: any) => msg.role === 'assistant');
+      
       // Get the most recent message (the assistant's response)
-      const latestMessage = messages.data[0]; // Messages are sorted by creation time in descending order
+      const latestMessage = assistantMessages.length > 0 ? assistantMessages[0] : null; // Messages are sorted by creation time in descending order
 
       // Extract the text content from the message object
       let content = '';
-      if (latestMessage.content && latestMessage.content.length > 0) {
+      if (latestMessage && latestMessage.content && latestMessage.content.length > 0) {
         // Find the text content in the message (could also contain images or other content types)
         const textContent = latestMessage.content.find((item) => item.type === 'text');
         if (textContent && 'text' in textContent && textContent.text) {
