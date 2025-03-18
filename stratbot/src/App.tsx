@@ -141,7 +141,7 @@ function App() {
       await sendMessageToAssistant(
         {
           messages: [{ role: 'user', content: input }],
-          assistantId: assistantId,
+          assistantId: assistantId, // This will be used by the openai.ts service
           threadId: threadId || undefined
         },
         (updatedContent) => {

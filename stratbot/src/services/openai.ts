@@ -186,43 +186,64 @@ export const sendMessageToAssistant = async (
     // Log the request parameters for debugging
     console.log('Creating run with parameters:', { 
       threadId, 
-      assistant_id: request.assistantId 
+      assistant_id: assistantIdToUse 
     });
 
     // Check if streaming callback is provided
     if (onMessageUpdate) {
       /**
-       * Streaming mode implementation
+       * Polling implementation to simulate streaming
        * 
-       * This section handles real-time streaming of the assistant's response.
-       * It connects to the OpenAI streaming API and processes each chunk of
-       * the response as it arrives, updating the UI through the callback.
+       * This section uses polling to simulate streaming of the assistant's response.
+       * It periodically checks the status of the run and retrieves the latest messages
+       * to update the UI as if it were streaming.
        */
       let fullContent = '';
       
       try {
-        // Connect to the streaming API
-        const stream = await openai.beta.threads.runs.stream(threadId, run.id);
+        // Get initial run status
+        let runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
         
-        // Process each event from the stream
-        for await (const event of stream) {
-          // Handle content delta events (new content chunks)
-          if (event.event === 'thread.message.delta' && event.data?.delta?.content) {
-            const contentDelta = event.data.delta.content[0];
-            if (contentDelta.type === 'text' && contentDelta.text) {
-              // Append new content to the accumulated response
-              fullContent += contentDelta.text.value;
-              // Update the UI with the latest content
-              onMessageUpdate(fullContent);
+        // Poll until the run is completed or fails
+        while (runStatus.status !== 'completed' && 
+               runStatus.status !== 'failed' && 
+               runStatus.status !== 'cancelled' && 
+               runStatus.status !== 'expired') {
+          // Wait 500ms before checking again
+          await new Promise(resolve => setTimeout(resolve, 500));
+          runStatus = await openai.beta.threads.runs.retrieve(threadId, run.id);
+          
+          // Get the latest messages to simulate streaming
+          if (runStatus.status === 'in_progress') {
+            const messages = await openai.beta.threads.messages.list(threadId);
+            if (messages.data.length > 0) {
+              const latestMessage = messages.data[0];
+              if (latestMessage.content && latestMessage.content.length > 0) {
+                const textContent = latestMessage.content.find((item) => item.type === 'text');
+                if (textContent && 'text' in textContent && textContent.text) {
+                  fullContent = textContent.text.value;
+                  onMessageUpdate(fullContent);
+                }
+              }
             }
-          } 
-          // Handle error events from the stream
-          else if (event.event === 'error') {
-            // Format error message and display it to the user
-            const errorMessage = `Streaming error: ${JSON.stringify(event.data)}`;
-            onMessageUpdate(`Error: ${errorMessage}`);
-            throw new Error(errorMessage);
           }
+        }
+        
+        // Final check for completion
+        if (runStatus.status === 'completed') {
+          const messages = await openai.beta.threads.messages.list(threadId);
+          if (messages.data.length > 0) {
+            const latestMessage = messages.data[0];
+            if (latestMessage.content && latestMessage.content.length > 0) {
+              const textContent = latestMessage.content.find((item) => item.type === 'text');
+              if (textContent && 'text' in textContent && textContent.text) {
+                fullContent = textContent.text.value;
+                onMessageUpdate(fullContent);
+              }
+            }
+          }
+        } else if (runStatus.status === 'failed' || runStatus.status === 'cancelled' || runStatus.status === 'expired') {
+          throw new Error(`Run ended with status: ${runStatus.status}`);
         }
       } catch (streamError) {
         // Handle exceptions during streaming
