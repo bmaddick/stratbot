@@ -18,22 +18,9 @@ import { Button } from './components/ui/button'
 import { Input } from './components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card'
 
-// Import OpenAI service functions for API communication
-import { sendMessageToAssistant, createThread } from './services/openai'
+// Import API service functions for communication
+import { getSessions, createSession, deleteSession, getSessionMessages, sendMessageToSession, type Session, type Message } from './services/api'
 
-/**
- * Message interface defines the structure of chat messages
- * - id: Unique identifier for the message
- * - content: The text content of the message
- * - role: Whether the message is from the user or assistant
- * - timestamp: When the message was created
- */
-interface Message {
-  id: string;
-  content: string;
-  role: 'user' | 'assistant';
-  timestamp: Date;
-}
 
 /**
  * Main App component for the Cracker Barrel Strategy Bot
@@ -54,29 +41,41 @@ function App() {
   const [input, setInput] = useState(''); // User input text field value
   const [isLoading, setIsLoading] = useState(false); // Loading indicator for API calls
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile sidebar visibility toggle
-  const [threadId, setThreadId] = useState<string | null>(null); // OpenAI conversation thread ID
+  const [sessionId, setSessionId] = useState<string | null>(null); // Session ID for the current conversation
+  const [sessions, setSessions] = useState<Session[]>([]); // All available sessions for the sidebar
   const messagesEndRef = useRef<HTMLDivElement>(null); // Reference for auto-scrolling to latest messages
 
   /**
-   * Initialize OpenAI thread when component mounts
+   * Initialize session and fetch available sessions on component mount
    * 
-   * Creates a new conversation thread with the OpenAI Assistant API
-   * that persists throughout the session. This allows the assistant
-   * to maintain context across multiple messages.
+   * Creates a new session if none exists and fetches all available
+   * sessions for the conversation history in the sidebar.
    */
   useEffect(() => {
-    const initThread = async () => {
+    // Fetch all available sessions for the sidebar
+    const fetchSessions = async () => {
       try {
-        const newThreadId = await createThread();
-        setThreadId(newThreadId);
-        console.log('Thread created:', newThreadId);
+        const availableSessions = await getSessions();
+        setSessions(availableSessions);
       } catch (error) {
-        console.error('Error creating thread:', error);
+        console.error('Error fetching sessions:', error);
       }
     };
-    
-    initThread();
-  }, []); // Empty dependency array ensures this runs only once on mount
+
+    const initializeSession = async () => {
+      try {
+        if (!sessionId) {
+          const newSession = await createSession();
+          setSessionId(newSession.id);
+        }
+      } catch (error) {
+        console.error('Error creating session:', error);
+      }
+    };
+
+    fetchSessions();
+    initializeSession();
+  }, [sessionId]); // Re-run if sessionId changes
 
   /**
    * Auto-scroll to the latest message when messages update
@@ -90,25 +89,19 @@ function App() {
   }, [messages]); // Re-run when messages array changes
 
   /**
-   * Handle sending a new message to the OpenAI Assistant
+   * Handle sending a new message
    * 
-   * This function:
-   * 1. Creates and adds the user message to the chat
-   * 2. Creates an empty assistant message placeholder
-   * 3. Streams the AI response in real-time, updating the placeholder
-   * 4. Handles errors with user-friendly messages
-   * 
-   * The streaming approach provides immediate feedback to users as
-   * the AI generates its response, rather than waiting for the
-   * complete response before displaying anything.
+   * Adds the user message to the chat, sends it to the API,
+   * and handles the response.
    */
-  const handleSendMessage = async () => {
-    if (input.trim() === '') return; // Prevent sending empty messages
+  const handleSendMessage = () => {
+    // Don't send empty messages
+    if (!input.trim() || isLoading) return;
     
-    // Create new user message object
+    // Create a new message object for the user's input
     const newMessage: Message = {
       id: Date.now().toString(),
-      content: input,
+      content: input.trim(),
       role: 'user',
       timestamp: new Date()
     };
@@ -118,66 +111,136 @@ function App() {
     setInput('');
     setIsLoading(true); // Show loading indicator
     
-    try {
-      // Create a placeholder for the assistant message that will be updated with streaming content
-      const assistantMessageId = (Date.now() + 1).toString();
-      const assistantMessage: Message = {
-        id: assistantMessageId,
-        content: '', // Start with empty content that will be filled via streaming
-        role: 'assistant',
-        timestamp: new Date()
-      };
-      
-      // Add empty assistant message to the chat immediately to show a response is coming
-      setMessages(prev => [...prev, assistantMessage]);
-      
-      // Validate environment variables - ensure Assistant ID is configured
-      const assistantId = import.meta.env.VITE_OPENAI_ASSISTANT_ID;
-      if (!assistantId) {
-        throw new Error('Assistant ID is missing. Please add VITE_OPENAI_ASSISTANT_ID to your .env file.');
+    const assistantMessageId = (Date.now() + 1).toString();
+    
+    // Create an empty assistant message to show typing indicator
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      content: '',
+      role: 'assistant',
+      timestamp: new Date()
+    };
+    
+    // Add empty assistant message to the chat immediately to show a response is coming
+    setMessages(prev => [...prev, assistantMessage]);
+    
+    if (!sessionId) {
+      setIsLoading(false);
+      return;
+    }
+    
+    sendMessageToSession(
+      sessionId,
+      newMessage.content,
+      (updatedContent) => {
+        // This callback is called repeatedly as new content arrives
+        // Update the assistant message with the latest content from the stream
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === assistantMessageId 
+              ? { ...msg, content: updatedContent } 
+              : msg
+          )
+        );
       }
-      
-      // Send message to OpenAI with streaming callback for real-time updates
-      await sendMessageToAssistant(
-        {
-          messages: [{ role: 'user', content: input }],
-          assistantId: assistantId, // This will be used by the openai.ts service
-          threadId: threadId || undefined
-        },
-        (updatedContent) => {
-          // This callback is called repeatedly as new content arrives
-          // Update the assistant message with the latest content from the stream
-          setMessages(prev => 
-            prev.map(msg => 
-              msg.id === assistantMessageId 
-                ? { ...msg, content: updatedContent } 
-                : msg
-            )
-          );
-        }
-      ).then(response => {
-        // Store the thread ID for conversation continuity
-        if (response.threadId && (!threadId || threadId !== response.threadId)) {
-          setThreadId(response.threadId);
-        }
-      });
-    } catch (error) {
-      console.error('Error sending message to assistant:', error);
+    ).then(updatedMessages => {
+      setMessages(updatedMessages);
+      setIsLoading(false);
+    }).catch(error => {
+      console.error('Error sending message:', error);
       
       // Display user-friendly error message in the chat interface
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: "Sorry, there was an error processing your request. Please try again later.",
+        content: error.message || "Sorry, there was an error processing your request. Please try again later.",
         role: 'assistant',
         timestamp: new Date()
       };
       
       setMessages(prev => [...prev, errorMessage]);
+      setIsLoading(false);
+    });
+  };
+
+  /**
+   * Handle selecting a session from the sidebar
+   * 
+   * Loads the messages for the selected session.
+   * 
+   * @param sessionId - ID of the session to load
+   */
+  const handleSelectSession = async (sessionId: string) => {
+    try {
+      setIsLoading(true);
+      setSessionId(sessionId);
+      
+      const sessionMessages = await getSessionMessages(sessionId);
+      setMessages(sessionMessages);
+    } catch (error) {
+      console.error('Error loading session:', error);
     } finally {
-      // Always reset loading state when operation completes (success or error)
       setIsLoading(false);
     }
   };
+
+  /**
+   * Handle creating a new session
+   * 
+   * Creates a new session and clears the current messages.
+   */
+  const handleCreateNewSession = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Create a new session
+      const newSession = await createSession();
+      setSessionId(newSession.id);
+      
+      setMessages([]);
+      
+      // Update the sessions list
+      setSessions([newSession, ...sessions]);
+    } catch (error) {
+      console.error('Error creating new session:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  /**
+   * Handle deleting a session
+   * 
+   * Deletes a session and updates the sessions list.
+   * If the deleted session is the current session, selects another session.
+   * 
+   * @param sessionId - ID of the session to delete
+   */
+  const handleDeleteSession = async (sessionIdToDelete: string) => {
+    try {
+      setIsLoading(true);
+      
+      await deleteSession(sessionIdToDelete);
+      
+      // Update the sessions list
+      setSessions(sessions.filter(session => session.id !== sessionIdToDelete));
+      
+      if (sessionId === sessionIdToDelete) {
+        if (sessions.length > 1) {
+          const nextSession = sessions.find(session => session.id !== sessionIdToDelete);
+          if (nextSession) {
+            await handleSelectSession(nextSession.id);
+          }
+        } else {
+          setSessionId(null);
+          setMessages([]);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting session:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   /**
    * Handle keyboard events in the input field
@@ -210,17 +273,39 @@ function App() {
             <div className="h-6 w-6 bg-amber-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
               CB
             </div>
-            Strategy Bot
+            <span>Cracker Barrel</span>
           </div>
         </div>
         <div className="flex-1 overflow-auto py-2">
           <div className="px-4 py-2">
             <h2 className="mb-2 text-lg font-semibold">Conversation History</h2>
             <div className="space-y-2">
-              <Button variant="ghost" className="w-full justify-start text-left">
+              <Button variant="ghost" className="w-full justify-start text-left" onClick={handleCreateNewSession}>
                 <ChevronRight className="mr-2 h-4 w-4" />
                 <span>New Conversation</span>
               </Button>
+              
+              {sessions.map(session => (
+                <div key={session.id} className="flex items-center">
+                  <Button 
+                    variant="ghost" 
+                    className={`flex-1 justify-start text-left ${sessionId === session.id ? 'bg-gray-100' : ''}`}
+                    onClick={() => handleSelectSession(session.id)}
+                  >
+                    <ChevronRight className="mr-2 h-4 w-4" />
+                    <span>Session {session.id.substring(0, 8)}</span>
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="h-8 w-8 text-gray-500 hover:text-red-500"
+                    onClick={() => handleDeleteSession(session.id)}
+                  >
+                    <span className="sr-only">Delete</span>
+                    ×
+                  </Button>
+                </div>
+              ))}
             </div>
           </div>
         </div>
