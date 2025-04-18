@@ -31,7 +31,7 @@ export interface MessagesResponse {
   messages: Message[];
 }
 
-const API_BASE_URL = '/api/v1';
+const API_BASE_URL = 'https://us-compsuite-api.mms-internal.my.id/api/v1';
 
 /**
  * Get all available sessions
