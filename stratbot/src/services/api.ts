@@ -34,13 +34,30 @@ export interface MessagesResponse {
 const API_BASE_URL = 'https://us-compsuite-api.mms-internal.my.id/api/v1';
 
 /**
+ * Get headers with API key for all requests
+ */
+const getHeaders = () => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  };
+
+  if (import.meta.env.VITE_BE_API_KEY) {
+    headers['X-Api-Key'] = import.meta.env.VITE_BE_API_KEY;
+  }
+
+  return headers;
+};
+
+/**
  * Get all available sessions
  * 
  * @returns Promise resolving to an array of sessions
  */
 export const getSessions = async (): Promise<Session[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/sessions`);
+    const response = await fetch(`${API_BASE_URL}/sessions`, {
+      headers: getHeaders()
+    });
     
     if (!response.ok) {
       throw new Error(`Failed to fetch sessions: ${response.status} ${response.statusText}`);
@@ -76,9 +93,7 @@ export const createSession = async (): Promise<Session> => {
   try {
     const response = await fetch(`${API_BASE_URL}/sessions`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: getHeaders()
     });
     
     if (!response.ok) {
@@ -114,7 +129,8 @@ export const createSession = async (): Promise<Session> => {
 export const deleteSession = async (sessionId: string): Promise<void> => {
   try {
     const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: getHeaders()
     });
     
     if (!response.ok) {
@@ -149,7 +165,9 @@ export const deleteSession = async (sessionId: string): Promise<void> => {
  */
 export const getSessionMessages = async (sessionId: string): Promise<Message[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}/messages`);
+    const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}/messages`, {
+      headers: getHeaders()
+    });
     
     if (!response.ok) {
       throw new Error(`Failed to fetch messages: ${response.status} ${response.statusText}`);
@@ -195,9 +213,7 @@ export const sendMessageToSession = async (
   try {
     const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}/messages`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: getHeaders(),
       body: JSON.stringify({
         content
       })
