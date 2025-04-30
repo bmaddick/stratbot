@@ -14,7 +14,7 @@
  */
 export interface Message {
   id: string;
-  content: string;
+  content: string[]; // Changed from string to string[]
   role: 'user' | 'assistant';
   timestamp: Date;
 }
@@ -27,8 +27,12 @@ export interface SessionsResponse {
   sessions: Session[];
 }
 
-export interface MessagesResponse {
-  messages: Message[];
+export type MessagesResponse = Message[];
+
+export interface ResponseModel<T = any> {
+  code: string;
+  message?: string;
+  data?: T;
 }
 
 const API_BASE_URL = 'https://us-compsuite-api.mms-internal.my.id/api/v1';
@@ -63,8 +67,8 @@ export const getSessions = async (): Promise<Session[]> => {
       throw new Error(`Failed to fetch sessions: ${response.status} ${response.statusText}`);
     }
     
-    const data: SessionsResponse = await response.json();
-    return data.sessions;
+    const responseModel: ResponseModel<SessionsResponse> = await response.json();
+    return responseModel.data?.sessions || [];
   } catch (error) {
     console.error('Error fetching sessions:', error);
     
@@ -93,14 +97,21 @@ export const createSession = async (): Promise<Session> => {
   try {
     const response = await fetch(`${API_BASE_URL}/sessions`, {
       method: 'POST',
-      headers: getHeaders()
+      headers: getHeaders(),
+      body: JSON.stringify({
+        openai_assistant_id: import.meta.env.VITE_OPENAI_ASSISTANT_ID
+      })
     });
     
     if (!response.ok) {
       throw new Error(`Failed to create session: ${response.status} ${response.statusText}`);
     }
     
-    return await response.json();
+    const responseModel: ResponseModel<Session> = await response.json();
+    if (!responseModel.data) {
+      throw new Error('Invalid response format: missing data');
+    }
+    return responseModel.data;
   } catch (error) {
     console.error('Error creating session:', error);
     
@@ -173,8 +184,8 @@ export const getSessionMessages = async (sessionId: string): Promise<Message[]> 
       throw new Error(`Failed to fetch messages: ${response.status} ${response.statusText}`);
     }
     
-    const data: MessagesResponse = await response.json();
-    return data.messages;
+    const responseModel: ResponseModel<Message[]> = await response.json();
+    return responseModel.data || [];
   } catch (error) {
     console.error('Error fetching messages:', error);
     
@@ -207,44 +218,23 @@ export const getSessionMessages = async (sessionId: string): Promise<Message[]> 
  */
 export const sendMessageToSession = async (
   sessionId: string,
-  content: string,
-  onMessageUpdate?: (content: string) => void
+  content: string
 ): Promise<Message[]> => {
   try {
     const response = await fetch(`${API_BASE_URL}/sessions/${sessionId}/messages`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({
-        content
+        message: content // Changed 'content' to 'message'
       })
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to send message: ${response.status} ${response.statusText}`);
     }
-    
-    if (response.headers.get('Content-Type')?.includes('text/event-stream') && onMessageUpdate) {
-      const reader = response.body?.getReader();
-      let receivedContent = '';
-      
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          
-          if (done) {
-            break;
-          }
-          
-          const chunk = new TextDecoder().decode(value);
-          receivedContent += chunk;
-          
-          onMessageUpdate(receivedContent);
-        }
-      }
-    }
-    
-    const data: MessagesResponse = await response.json();
-    return data.messages;
+
+    const responseModel: ResponseModel<Message[]> = await response.json();
+    return responseModel.data || [];
   } catch (error) {
     console.error('Error sending message:', error);
     

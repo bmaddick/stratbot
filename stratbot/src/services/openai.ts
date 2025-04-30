@@ -20,12 +20,6 @@ import OpenAI from 'openai';
 const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
 const assistantId = import.meta.env.VITE_OPENAI_ASSISTANT_ID;
 
-console.log('Environment variables loaded:', { 
-  apiKeyExists: !!apiKey, 
-  assistantIdExists: !!assistantId,
-  assistantIdValue: assistantId // Log the actual value for debugging
-});
-
 if (!apiKey) {
   console.error('OpenAI API key is missing. Please add VITE_OPENAI_API_KEY to your .env file.');
 }
@@ -107,7 +101,6 @@ export const createThread = async (): Promise<string> => {
   try {
     // Create a new thread using the OpenAI API
     const thread = await openai.beta.threads.create();
-    console.log('Thread created:', thread.id);
     return thread.id;
   } catch (error) {
     console.error('Error creating thread:', error);
@@ -182,12 +175,6 @@ export const sendMessageToAssistant = async (
     const run = await openai.beta.threads.runs.create(threadId, {
       assistant_id: assistantIdToUse,
     });
-    
-    // Log the request parameters for debugging
-    console.log('Creating run with parameters:', { 
-      threadId, 
-      assistant_id: assistantIdToUse 
-    });
 
     // Check if streaming callback is provided
     if (onMessageUpdate) {
@@ -217,13 +204,6 @@ export const sendMessageToAssistant = async (
           if (runStatus.status === 'in_progress') {
             const messages = await openai.beta.threads.messages.list(threadId);
             
-            // Debug logging to help with troubleshooting message filtering
-            console.log('Messages retrieved:', { 
-              totalMessages: messages.data.length, 
-              assistantMessages: messages.data.filter((msg: any) => msg.role === 'assistant').length,
-              userMessages: messages.data.filter((msg: any) => msg.role === 'user').length
-            });
-            
             // Filter for assistant messages only to prevent showing user's question
             const assistantMessages = messages.data.filter((msg: any) => msg.role === 'assistant');
             if (assistantMessages.length > 0) {
@@ -242,13 +222,6 @@ export const sendMessageToAssistant = async (
         // Final check for completion
         if (runStatus.status === 'completed') {
           const messages = await openai.beta.threads.messages.list(threadId);
-          
-          // Debug logging to help with troubleshooting message filtering
-          console.log('Final messages retrieved:', { 
-            totalMessages: messages.data.length, 
-            assistantMessages: messages.data.filter((msg: any) => msg.role === 'assistant').length,
-            userMessages: messages.data.filter((msg: any) => msg.role === 'user').length
-          });
           
           // Filter for assistant messages only to prevent showing user's question
           const assistantMessages = messages.data.filter((msg: any) => msg.role === 'assistant');
@@ -309,13 +282,6 @@ export const sendMessageToAssistant = async (
 
       // Once completed, retrieve all messages from the thread
       const messages = await openai.beta.threads.messages.list(threadId);
-      
-      // Debug logging to help with troubleshooting message filtering
-      console.log('Fallback mode messages retrieved:', { 
-        totalMessages: messages.data.length, 
-        assistantMessages: messages.data.filter((msg: any) => msg.role === 'assistant').length,
-        userMessages: messages.data.filter((msg: any) => msg.role === 'user').length
-      });
       
       // Filter for assistant messages only to prevent showing user's question
       const assistantMessages = messages.data.filter((msg: any) => msg.role === 'assistant');

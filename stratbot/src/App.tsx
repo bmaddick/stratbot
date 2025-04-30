@@ -62,20 +62,8 @@ function App() {
       }
     };
 
-    const initializeSession = async () => {
-      try {
-        if (!sessionId) {
-          const newSession = await createSession();
-          setSessionId(newSession.id);
-        }
-      } catch (error) {
-        console.error('Error creating session:', error);
-      }
-    };
-
     fetchSessions();
-    initializeSession();
-  }, [sessionId]); // Re-run if sessionId changes
+  }, []); // Re-run if sessionId changes
 
   /**
    * Auto-scroll to the latest message when messages update
@@ -101,62 +89,60 @@ function App() {
     // Create a new message object for the user's input
     const newMessage: Message = {
       id: Date.now().toString(),
-      content: input.trim(),
+      content: [input.trim()], // Wrap content in an array
       role: 'user',
       timestamp: new Date()
     };
-    
+
     // Add user message to chat and reset input field
     setMessages(prev => [...prev, newMessage]);
     setInput('');
     setIsLoading(true); // Show loading indicator
-    
-    const assistantMessageId = (Date.now() + 1).toString();
-    
-    // Create an empty assistant message to show typing indicator
-    const assistantMessage: Message = {
-      id: assistantMessageId,
-      content: '',
-      role: 'assistant',
-      timestamp: new Date()
-    };
-    
-    // Add empty assistant message to the chat immediately to show a response is coming
-    setMessages(prev => [...prev, assistantMessage]);
-    
+
+    // Removed assistant placeholder message creation and addition
+
     if (!sessionId) {
       setIsLoading(false);
-      return;
-    }
-    
-    sendMessageToSession(
-      sessionId,
-      newMessage.content,
-      (updatedContent) => {
-        // This callback is called repeatedly as new content arrives
-        // Update the assistant message with the latest content from the stream
-        setMessages(prev => 
-          prev.map(msg => 
-            msg.id === assistantMessageId 
-              ? { ...msg, content: updatedContent } 
-              : msg
-          )
-        );
-      }
-    ).then(updatedMessages => {
-      setMessages(updatedMessages);
-      setIsLoading(false);
-    }).catch(error => {
-      console.error('Error sending message:', error);
-      
-      // Display user-friendly error message in the chat interface
-      const errorMessage: Message = {
+      // Optionally add an error message here if needed
+      console.error("Cannot send message: No active session ID");
+      const noSessionError: Message = {
         id: (Date.now() + 1).toString(),
-        content: error.message || "Sorry, there was an error processing your request. Please try again later.",
+        content: ["Error: No active session. Please create a new conversation."],
         role: 'assistant',
         timestamp: new Date()
       };
-      
+      setMessages(prev => [...prev, noSessionError]);
+      return;
+    }
+
+    sendMessageToSession(
+      sessionId,
+      newMessage.content.join('') // Join user message content for sending
+      // Removed onMessageUpdate callback
+    ).then(updatedMessages => {
+      setMessages(updatedMessages); // Update with the full list from API
+      setIsLoading(false);
+    }).catch(error => {
+      console.error('Error sending message:', error);
+      console.error('Error sending message:', error);
+
+      // Display user-friendly error message in the chat interface
+      let errorContent: string;
+      if (error instanceof Error && typeof error.message === 'string') {
+        errorContent = error.message;
+      } else if (typeof error === 'string') {
+        errorContent = error;
+      } else {
+        errorContent = "Sorry, there was an error processing your request. Please try again later.";
+      }
+
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: [errorContent], // Use the guaranteed string in an array
+        role: 'assistant',
+        timestamp: new Date()
+      };
+
       setMessages(prev => [...prev, errorMessage]);
       setIsLoading(false);
     });
@@ -195,7 +181,6 @@ function App() {
       // Create a new session
       const newSession = await createSession();
       setSessionId(newSession.id);
-      
       setMessages([]);
       
       // Update the sessions list
@@ -346,46 +331,48 @@ function App() {
             <CardContent className="p-0">
               {/* Messages Container - Scrollable area for chat history */}
               <div className="h-[calc(100vh-240px)] overflow-y-auto p-4">
-                {messages.length === 0 ? (
+                {messages && messages.length === 0 ? (
                   /* Welcome message when no messages exist */
                   <div className="flex h-full flex-col items-center justify-center text-center p-8 text-gray-500">
                     <h3 className="text-lg font-medium mb-2">Welcome to the Cracker Barrel Strategy Bot</h3>
                     <p className="max-w-md">
-                      Ask questions about strategy, operations, or any other business topics. 
+                      Ask questions about strategy, operations, or any other business topics.
                       I'm here to assist with insights and recommendations.
                     </p>
                   </div>
                 ) : (
                   /* Message list with user and assistant messages */
                   <div className="space-y-4">
-                    {messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`flex ${
-                          message.role === 'user' ? 'justify-end' : 'justify-start'
-                        }`}
-                      >
+                    {messages && messages.map((message) => {
+                      return (
                         <div
-                          className={`max-w-[80%] rounded-lg p-3 ${
-                            message.role === 'user'
-                              ? 'bg-amber-600 text-white' // User message styling
-                              : message.content.startsWith('Error:') || message.content.includes('error')
-                                ? 'error-message' // Error message styling
-                                : 'bg-gray-100 text-gray-800' // Normal assistant message styling
+                          key={message.id}
+                          className={`flex ${
+                            message.role === 'user' ? 'justify-end' : 'justify-start'
                           }`}
                         >
-                          {message.role === 'user' ? (
-                            /* Plain text for user messages */
-                            message.content
-                          ) : (
-                            /* Markdown rendering for assistant messages */
-                            <ReactMarkdown>
-                              {message.content || ''}
-                            </ReactMarkdown>
-                          )}
+                          <div
+                            className={`max-w-[80%] rounded-lg p-3 ${
+                              message.role === 'user'
+                                ? 'bg-amber-600 text-white' // User message styling
+                                : message.content.join('').startsWith('Error:') || message.content.join('').includes('error') // Join content for checks
+                                  ? 'error-message' // Error message styling
+                                  : 'bg-gray-100 text-gray-800' // Normal assistant message styling
+                            }`}
+                          >
+                            {message.role === 'user' ? (
+                              /* Plain text for user messages */
+                              message.content.join('') // Join content for display
+                            ) : (
+                              /* Markdown rendering for assistant messages */
+                              <ReactMarkdown>
+                                {message.content.join('') || ''}
+                              </ReactMarkdown>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     {/* Loading indicator - Animated dots while waiting for response */}
                     {isLoading && (
                       <div className="flex justify-start">
@@ -406,24 +393,33 @@ function App() {
 
               {/* Input Area - Message input and send button */}
               <div className="border-t p-4">
-                <div className="flex items-end gap-2">
-                  <Input
-                    className="flex-1 min-h-10 resize-none"
-                    placeholder="Type your message..."
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                  />
-                  <Button 
-                    type="button"
-                    onClick={handleSendMessage} 
-                    disabled={false}
-                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                {sessions.length > 0 ? (
+                  <div className="flex items-end gap-2">
+                    <Input
+                      className="flex-1 min-h-10 resize-none"
+                      placeholder="Type your message..."
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={handleKeyPress}
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleSendMessage}
+                      disabled={false}
+                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                    >
+                      <Send className="h-4 w-4" />
+                      <span className="sr-only">Send</span>
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                    onClick={handleCreateNewSession}
                   >
-                    <Send className="h-4 w-4" />
-                    <span className="sr-only">Send</span>
+                    Create a session
                   </Button>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
