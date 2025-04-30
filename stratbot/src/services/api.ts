@@ -21,11 +21,11 @@ export interface Message {
 
 export interface Session {
   id: string;
+  company_uuid: string;
+  openai_thread_id: string;
 }
 
-export interface SessionsResponse {
-  sessions: Session[];
-}
+export type SessionsResponse = Session[];
 
 export type MessagesResponse = Message[];
 
@@ -68,7 +68,7 @@ export const getSessions = async (): Promise<Session[]> => {
     }
     
     const responseModel: ResponseModel<SessionsResponse> = await response.json();
-    return responseModel.data?.sessions || [];
+    return responseModel.data || [];
   } catch (error) {
     console.error('Error fetching sessions:', error);
     
