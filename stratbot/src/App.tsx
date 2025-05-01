@@ -1,5 +1,5 @@
 /**
- * Cracker Barrel Strategy Bot - Chat Interface
+ * Pathfinder - Chat Interface
  * 
  * This application provides a chat interface for users to interact with an OpenAI Assistant
  * specialized in strategy and business topics for Cracker Barrel. It uses the OpenAI
@@ -23,7 +23,7 @@ import { getSessions, createSession, deleteSession, getSessionMessages, sendMess
 
 
 /**
- * Main App component for the Cracker Barrel Strategy Bot
+ * Main App component for the Pathfinder
  * 
  * This component manages the entire chat interface, handling:
  * - Message state and history
@@ -318,7 +318,7 @@ function App() {
             <span className="sr-only">Toggle Menu</span>
           </Button>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold">Cracker Barrel Strategy Bot</h1>
+            <h1 className="text-lg font-semibold">Pathfinder</h1>
           </div>
         </header>
 
@@ -334,7 +334,7 @@ function App() {
                 {messages && messages.length === 0 ? (
                   /* Welcome message when no messages exist */
                   <div className="flex h-full flex-col items-center justify-center text-center p-8 text-gray-500">
-                    <h3 className="text-lg font-medium mb-2">Welcome to the Cracker Barrel Strategy Bot</h3>
+                    <h3 className="text-lg font-medium mb-2">Welcome to the Pathfinder</h3>
                     <p className="max-w-md">
                       Ask questions about strategy, operations, or any other business topics.
                       I'm here to assist with insights and recommendations.

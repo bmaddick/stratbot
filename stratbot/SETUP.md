@@ -1,6 +1,6 @@
-# Setting up the Cracker Barrel Strategy Bot
+# Setting up the Pathfinder
 
-This document provides instructions for setting up the environment variables required for the Cracker Barrel Strategy Bot to connect to the OpenAI Assistant.
+This document provides instructions for setting up the environment variables required for the Pathfinder to connect to the OpenAI Assistant.
 
 ## Environment Variables
 

@@ -1,7 +1,7 @@
 /**
  * API Service for Session and Message Management
  *
- * This module provides integration with the custom API for the Cracker Barrel Strategy Bot.
+ * This module provides integration with the custom API for the Pathfinder.
  * It handles session management, message sending, and response streaming for real-time AI responses.
  */
 
