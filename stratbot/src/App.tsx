@@ -323,14 +323,14 @@ function App() {
         </header>
 
         {/* Chat Area - Main content with messages */}
-        <main className="flex-1 overflow-auto p-4">
-          <Card className="mx-auto max-w-4xl">
+        <main className="flex-1 overflow-auto">
+          <Card className="w-full">
             <CardHeader className="bg-amber-50 border-b">
               <CardTitle className="text-center text-amber-800">Strategy Assistant</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {/* Messages Container - Scrollable area for chat history */}
-              <div className="h-[calc(100vh-240px)] overflow-y-auto p-4">
+              <div className="h-[calc(100vh-240px)] overflow-y-auto p-4 w-full">
                 {messages && messages.length === 0 ? (
                   /* Welcome message when no messages exist */
                   <div className="flex h-full flex-col items-center justify-center text-center p-8 text-gray-500">
