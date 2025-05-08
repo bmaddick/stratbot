@@ -450,7 +450,7 @@ function App() {
                     onClick={handleCreateNewSession}
                     disabled={initialLoading} // Disable during initial loading
                   >
-                    Create a session
+                    {initialLoading ? 'Please Wait...' : 'Create a session'} {/* Change text during initial loading */}
                   </Button>
                 )}
               </div>
