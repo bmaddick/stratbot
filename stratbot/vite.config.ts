@@ -9,10 +9,14 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    allowedHosts: [
+      'us-praevius.mms-internal.my.id'
+    ]
+  },
   // Ensure environment variables are properly loaded
   envPrefix: 'VITE_',
   define: {
     'process.env': {}
   }
 })
-
