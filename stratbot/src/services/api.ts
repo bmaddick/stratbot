@@ -1,14 +1,14 @@
 /**
  * API Service for Session and Message Management
  *
- * This module provides integration with the custom API for the Pathfinder.
+ * This module provides integration with the custom API for the Praevius.
  * It handles session management, message sending, and response streaming for real-time AI responses.
  */
 
 /**
  * Function to get the token from the URL
  */
-function getTokenFromUrl(): string | null {
+export function getTokenFromUrl(): string | null {
   if (typeof window === 'undefined') {
     // Handle server-side rendering or environments without window
     return null;
@@ -20,7 +20,7 @@ function getTokenFromUrl(): string | null {
 /**
  * Function to extract the 10-character suffix from the token
  */
-function extractSuffixFromToken(token: string): string | null {
+export function extractSuffixFromToken(token: string): string | null {
   if (token.length < 10) {
     console.error('Token is too short to extract suffix.');
     return null;
@@ -61,8 +61,6 @@ function getApiKeysForToken(): { beApiKey: string; assistantId: string } | null 
     console.error(`Missing config for token suffix: ${tokenSuffix}`);
     return null;
   }
-
-  console.log('Ambyar:', beApiKey, assistantId)
 
   return {
     beApiKey: beApiKey,

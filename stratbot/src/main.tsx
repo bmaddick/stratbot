@@ -1,7 +1,7 @@
 /**
  * Application Entry Point
  * 
- * This file serves as the main entry point for the Pathfinder application.
+ * This file serves as the main entry point for the Praevius application.
  * It initializes the React application by mounting the root component to the DOM.
  * 
  * The file uses React 18's createRoot API for concurrent rendering capabilities,

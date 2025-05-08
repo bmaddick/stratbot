@@ -1,5 +1,5 @@
 /**
- * Pathfinder - Chat Interface
+ * Praevius - Chat Interface
  * 
  * This application provides a chat interface for users to interact with an OpenAI Assistant
  * specialized in strategy and business topics for Cracker Barrel. It uses the OpenAI
@@ -19,11 +19,24 @@ import { Input } from './components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card'
 
 // Import API service functions for communication
-import { getSessions, createSession, deleteSession, getSessionMessages, sendMessageToSession, type Session, type Message } from './services/api'
+import { getSessions, createSession, deleteSession, getSessionMessages, sendMessageToSession, type Session, type Message, getTokenFromUrl, extractSuffixFromToken } from './services/api'
 
 
 /**
- * Main App component for the Pathfinder
+ * Helper function to generate logo text from display name
+ */
+function generateLogoText(displayName: string): string {
+  if (!displayName) return '';
+  const words = displayName.split(' ');
+  if (words.length <= 2) {
+    return words.map(word => word.charAt(0).toUpperCase()).join('');
+  } else {
+    return words[0].charAt(0).toUpperCase() + words[words.length - 1].charAt(0).toUpperCase();
+  }
+}
+
+/**
+ * Main App component for the Praevius
  * 
  * This component manages the entire chat interface, handling:
  * - Message state and history
@@ -36,6 +49,14 @@ import { getSessions, createSession, deleteSession, getSessionMessages, sendMess
  * and business insights for Cracker Barrel.
  */
 function App() {
+  // Get token suffix and display name
+  const token = getTokenFromUrl();
+  const tokenSuffix = token ? extractSuffixFromToken(token) : null;
+  const displayName = tokenSuffix ? import.meta.env[`VITE_APP_DISPLAY_NAME_${tokenSuffix}`] : 'Cracker Barrel'; // Default to Cracker Barrel if no token or env var
+
+  // Generate logo text
+  const logoText = generateLogoText(displayName);
+
   // State management for the chat application
   const [messages, setMessages] = useState<Message[]>([]); // Store conversation history
   const [input, setInput] = useState(''); // User input text field value
@@ -256,9 +277,9 @@ function App() {
         <div className="flex h-14 items-center border-b px-4">
           <div className="flex items-center gap-2 font-semibold">
             <div className="h-6 w-6 bg-amber-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-              CB
+              {logoText}
             </div>
-            <span>Cracker Barrel</span>
+            <span>{displayName}</span>
           </div>
         </div>
         <div className="flex-1 overflow-auto py-2">
@@ -318,7 +339,7 @@ function App() {
             <span className="sr-only">Toggle Menu</span>
           </Button>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold">Pathfinder</h1>
+            <h1 className="text-lg font-semibold">Praevius</h1>
           </div>
         </header>
 
@@ -334,7 +355,7 @@ function App() {
                 {messages && messages.length === 0 ? (
                   /* Welcome message when no messages exist */
                   <div className="flex h-full flex-col items-center justify-center text-center p-8 text-gray-500">
-                    <h3 className="text-lg font-medium mb-2">Welcome to the Pathfinder</h3>
+                    <h3 className="text-lg font-medium mb-2">Welcome to the Praevius</h3>
                     <p className="max-w-md">
                       Ask questions about strategy, operations, or any other business topics.
                       I'm here to assist with insights and recommendations.
