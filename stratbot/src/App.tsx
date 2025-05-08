@@ -19,7 +19,7 @@ import { Input } from './components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card'
 
 // Import API service functions for communication
-import { getSessions, createSession, deleteSession, getSessionMessages, sendMessageToSession, type Session, type Message, getTokenFromUrl, extractSuffixFromToken, getCompanyInfo } from './services/api'
+import { getSessions, createSession, deleteSession, getSessionMessages, sendMessageToSession, type Session, type Message, getCompanyInfo } from './services/api'
 
 
 /**
