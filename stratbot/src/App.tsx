@@ -19,7 +19,7 @@ import { Input } from './components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card'
 
 // Import API service functions for communication
-import { getSessions, createSession, deleteSession, getSessionMessages, sendMessageToSession, type Session, type Message, getTokenFromUrl, extractSuffixFromToken } from './services/api'
+import { getSessions, createSession, deleteSession, getSessionMessages, sendMessageToSession, type Session, type Message, getTokenFromUrl, extractSuffixFromToken, getCompanyInfo } from './services/api'
 
 
 /**
@@ -49,14 +49,6 @@ function generateLogoText(displayName: string): string {
  * and business insights for Cracker Barrel.
  */
 function App() {
-  // Get token suffix and display name
-  const token = getTokenFromUrl();
-  const tokenSuffix = token ? extractSuffixFromToken(token) : null;
-  const displayName = tokenSuffix ? import.meta.env[`VITE_APP_DISPLAY_NAME_${tokenSuffix}`] : 'Cracker Barrel'; // Default to Cracker Barrel if no token or env var
-
-  // Generate logo text
-  const logoText = generateLogoText(displayName);
-
   // State management for the chat application
   const [messages, setMessages] = useState<Message[]>([]); // Store conversation history
   const [input, setInput] = useState(''); // User input text field value
@@ -64,27 +56,45 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile sidebar visibility toggle
   const [sessionId, setSessionId] = useState<string | null>(null); // Session ID for the current conversation
   const [sessions, setSessions] = useState<Session[]>([]); // All available sessions for the sidebar
+  const [displayName, setDisplayName] = useState('Now Loading'); // State for dynamic display name, initial loading state
+  const [initialLoading, setInitialLoading] = useState(true); // State to track initial loading
   const messagesEndRef = useRef<HTMLDivElement>(null); // Reference for auto-scrolling to latest messages
 
+  // Generate logo text based on current display name state
+  const logoText = generateLogoText(displayName);
+
   /**
-   * Initialize session and fetch available sessions on component mount
+   * Initialize session, fetch company info, and fetch available sessions on component mount
    * 
-   * Creates a new session if none exists and fetches all available
-   * sessions for the conversation history in the sidebar.
+   * Creates a new session if none exists, fetches company information to get
+   * the display name, and fetches all available sessions for the sidebar.
    */
   useEffect(() => {
-    // Fetch all available sessions for the sidebar
-    const fetchSessions = async () => {
+    const fetchData = async () => {
       try {
+        // Fetch company information first to get the display name
+        const companyInfo = await getCompanyInfo();
+        if (companyInfo && companyInfo.display_name) {
+          setDisplayName(companyInfo.display_name);
+        } else {
+          setDisplayName('Praevius'); // Default if fetching fails or display_name is missing
+        }
+
+        // Fetch all available sessions for the sidebar
         const availableSessions = await getSessions();
         setSessions(availableSessions);
+
       } catch (error) {
-        console.error('Error fetching sessions:', error);
+        console.error('Error fetching initial data:', error);
+        setDisplayName('Error Loading'); // Indicate error in display name
+        // Optionally set a default display name or show an error message
+      } finally {
+        setInitialLoading(false); // End initial loading
       }
     };
 
-    fetchSessions();
-  }, []); // Re-run if sessionId changes
+    fetchData();
+  }, []); // Empty dependency array means this effect runs once on mount
 
   /**
    * Auto-scroll to the latest message when messages update
@@ -277,16 +287,16 @@ function App() {
         <div className="flex h-14 items-center border-b px-4">
           <div className="flex items-center gap-2 font-semibold">
             <div className="h-6 w-6 bg-amber-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-              {logoText}
+              {initialLoading ? '' : logoText} {/* Blank circle during initial loading */}
             </div>
-            <span>{displayName}</span>
+            <span className={initialLoading ? 'italic' : ''}>{displayName}</span> {/* Italicize during initial loading */}
           </div>
         </div>
         <div className="flex-1 overflow-auto py-2">
           <div className="px-4 py-2">
             <h2 className="mb-2 text-lg font-semibold">Conversation History</h2>
             <div className="space-y-2">
-              <Button variant="ghost" className="w-full justify-start text-left" onClick={handleCreateNewSession}>
+              <Button variant="ghost" className="w-full justify-start text-left" onClick={handleCreateNewSession} disabled={initialLoading}>
                 <ChevronRight className="mr-2 h-4 w-4" />
                 <span>New Conversation</span>
               </Button>
@@ -422,11 +432,12 @@ function App() {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={handleKeyPress}
+                      disabled={isLoading || initialLoading} // Disable during any loading
                     />
                     <Button
                       type="button"
                       onClick={handleSendMessage}
-                      disabled={false}
+                      disabled={isLoading || initialLoading} // Disable during any loading
                       className="bg-amber-600 hover:bg-amber-700 text-white"
                     >
                       <Send className="h-4 w-4" />
@@ -437,6 +448,7 @@ function App() {
                   <Button
                     className="w-full bg-amber-600 hover:bg-amber-700 text-white"
                     onClick={handleCreateNewSession}
+                    disabled={initialLoading} // Disable during initial loading
                   >
                     Create a session
                   </Button>

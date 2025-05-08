@@ -160,6 +160,46 @@ export const getSessions = async (): Promise<Session[]> => {
 };
 
 /**
+ * Get company information
+ *
+ * @returns Promise resolving to the company information object
+ */
+export const getCompanyInfo = async (): Promise<{ company_uuid: string; company_name: string; display_name: string; is_active: boolean; created_at: string; updated_at: string }> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/companies/info`, {
+      headers: getHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch company info: ${response.status} ${response.statusText}`);
+    }
+
+    const responseModel: ResponseModel<{ company_uuid: string; company_name: string; display_name: string; is_active: boolean; created_at: string; updated_at: string }> = await response.json();
+    if (!responseModel.data) {
+      throw new Error('Invalid response format: missing data');
+    }
+    return responseModel.data;
+  } catch (error) {
+    console.error('Error fetching company info:', error);
+
+    let errorMessage = 'Failed to fetch company info. Please try again later.';
+
+    if (error instanceof Error) {
+      if (error.message.includes('401')) {
+        errorMessage = 'Authentication error: Please check your credentials.';
+      } else if (error.message.includes('429')) {
+        errorMessage = 'Rate limit exceeded: Too many requests to the API.';
+      } else if (error.message.includes('500')) {
+        errorMessage = 'Server error: Please try again later.';
+      }
+    }
+
+    throw new Error(errorMessage);
+  }
+};
+
+
+/**
  * Create a new session
  *
  * @returns Promise resolving to the session object
